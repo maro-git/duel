@@ -1,0 +1,11 @@
+[package]
+name = "duel"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bevy = { version = "0.6.0", default-features = true}#, features = ["render", "bevy_winit", "png"] }
+bevy_rapier2d = "0.12.1" 
+rand = "0.8.5"
