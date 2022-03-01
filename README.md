@@ -1,5 +1,10 @@
 # duel
 
+## used assets:
+* bevy
+* bevy_rapier2d
+
+
 ## Art:
 made by me with inkscape.
 
