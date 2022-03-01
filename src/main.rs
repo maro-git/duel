@@ -7,7 +7,9 @@ use nalgebra::{center, Isometry2, UnitComplex};
 
 use bevy_rapier2d::prelude::*;
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
+
+use instant;
 
 use rand::Rng;
 
@@ -50,8 +52,8 @@ struct Player {
     lives: u32,
     hit: bool,
     hit_duration: Duration,
-    elapsed: Instant,
-    elapsed_hit: Instant,
+    elapsed: instant::Instant,
+    elapsed_hit: instant::Instant,
     can_jump: bool,
 }
 
@@ -59,12 +61,12 @@ struct Player {
 struct Ai {
     hit: bool,
     hit_duration: Duration,
-    elapsed_hit: Instant,
+    elapsed_hit: instant::Instant,
     lives: u32,
     walk_x: i32,
     jump_y: i32,
     jump: bool,
-    elapsed_jump: Instant,
+    elapsed_jump: instant::Instant,
     jump_duration: Duration,
     jump_end: bool,
 }
@@ -83,7 +85,7 @@ struct Gloves {
     end_shot: bool,
     point_of_rotation: Point<f32>,
     offset: Vec2,
-    elapsed: Instant,
+    elapsed: instant::Instant,
 }
 
 #[derive(Component)]
@@ -92,14 +94,14 @@ struct Gun {
     is_active: bool,
     do_shot: bool,
     shot_duration: Duration,
-    elapsed: Instant,
+    elapsed: instant::Instant,
 }
 
 #[derive(Component)]
 struct Shotgun {
     do_shot: bool,
     shot_duration: Duration,
-    elapsed: Instant,
+    elapsed: instant::Instant,
     is_active: bool,
 }
 
@@ -107,7 +109,7 @@ struct Shotgun {
 struct Bullet {
     lifetime: Duration,
     shoot_dir: Vec2,
-    elapsed: Instant,
+    elapsed: instant::Instant,
 }
 
 fn setup_world(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -308,7 +310,20 @@ fn setup_world(mut commands: Commands, asset_server: Res<AssetServer>) {
         .into(),
         ..Default::default()
     };
+    let background = SpriteBundle {
+        transform: Transform {
+            translation: Vec3::new(0.0, 0.0, 0.0),
+            scale: Vec3::new(9000.0, 9000.0, 0.0),
+            ..Default::default()
+        },
+        sprite: Sprite {
+            color: Color::rgba(0.5, 0.5, 1.0, 1.0),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
 
+    commands.spawn_bundle(background);
     commands
         .spawn_bundle(player)
         .insert_bundle(player_rigid_body)
@@ -321,8 +336,8 @@ fn setup_world(mut commands: Commands, asset_server: Res<AssetServer>) {
             lives: 5,
             hit_duration: Duration::new(0, 0),
             hit: false,
-            elapsed: Instant::now(),
-            elapsed_hit: Instant::now(),
+            elapsed: instant::Instant::now(),
+            elapsed_hit: instant::Instant::now(),
             can_jump: false,
         });
 
@@ -334,11 +349,11 @@ fn setup_world(mut commands: Commands, asset_server: Res<AssetServer>) {
             hit: false,
             hit_duration: Duration::new(0, 0),
             lives: 10,
-            elapsed_hit: Instant::now(),
+            elapsed_hit: instant::Instant::now(),
             jump_y: 0,
             walk_x: 0,
             jump: false,
-            elapsed_jump: Instant::now(),
+            elapsed_jump: instant::Instant::now(),
             jump_duration: Duration::from_millis(300),
             jump_end: true,
         });
@@ -355,7 +370,7 @@ fn setup_world(mut commands: Commands, asset_server: Res<AssetServer>) {
             shot_duration: Duration::new(0, 0),
             point_of_rotation: Point::new(0.0, 0.0),
             offset: Vec2::new(0.0, 0.0),
-            elapsed: Instant::now(),
+            elapsed: instant::Instant::now(),
         })
         .insert_bundle(boxing_gloves_rigid_body)
         .insert(Collider::Gloves)
@@ -367,7 +382,7 @@ fn setup_world(mut commands: Commands, asset_server: Res<AssetServer>) {
         .insert(Gun {
             point_of_rotation: Point::new(0.0, 0.0),
             is_active: true,
-            elapsed: Instant::now(),
+            elapsed: instant::Instant::now(),
             do_shot: false,
             shot_duration: Duration::from_millis(256),
         })
@@ -379,7 +394,7 @@ fn setup_world(mut commands: Commands, asset_server: Res<AssetServer>) {
         .insert(Shotgun {
             do_shot: false,
             shot_duration: Duration::new(5, 0),
-            elapsed: Instant::now(),
+            elapsed: instant::Instant::now(),
             is_active: false,
         })
         .insert(RigidBodyPositionSync::Discrete);
@@ -542,7 +557,7 @@ fn update_player_movement(
                     if keyboard_input.just_pressed(KeyCode::W) {
                         if player.can_jump {
                             player.jump_duration = Duration::new(1, 0);
-                            player.elapsed = Instant::now();
+                            player.elapsed = instant::Instant::now();
 
                             player.is_jumping = true;
                         }
@@ -587,7 +602,7 @@ fn update_player_movement(
                                             server.load("audio/hit-someting-6037.ogg");
                                         audio.play(music);
                                         player.hit_duration = Duration::new(3, 0);
-                                        player.elapsed_hit = Instant::now();
+                                        player.elapsed_hit = instant::Instant::now();
                                     }
                                     player.hit = true;
                                     sprite.color = Color::rgb(1.0, 0.0, 0.0);
@@ -696,7 +711,7 @@ fn update_gloves_position(
             if gloves.shot_duration.as_millis() <= gloves.elapsed.elapsed().as_millis() {
                 position.0.position.translation.x = player_position.0.position.translation.x;
                 gloves.is_shooting = false;
-                gloves.elapsed = Instant::now();
+                gloves.elapsed = instant::Instant::now();
             }
 
             position.0.position.translation.x =
@@ -709,8 +724,8 @@ fn update_gloves_position(
                     let music: Handle<AudioSource> =
                         server.load("audio/fist-punch-or-kick-7171.ogg");
                     audio.play(music);
-                    gloves.elapsed = Instant::now();
-                    gloves.shot_duration = Duration::from_millis(400);
+                    gloves.elapsed = instant::Instant::now();
+                    gloves.shot_duration = Duration::from_millis(800);
                     gloves.is_shooting = true;
                     gloves.end_shot = false;
                 }
@@ -766,7 +781,7 @@ fn update_gun_position(
                         if gun.is_active {
                             if gun.shot_duration.as_millis() <= gun.elapsed.elapsed().as_millis() {
                                 gun.shot_duration = Duration::from_millis(569);
-                                gun.elapsed = Instant::now();
+                                gun.elapsed = instant::Instant::now();
                                 sprite.color = Color::rgba(1.0, 1.0, 1.0, 1.0);
                                 gun.do_shot = true;
                             }
@@ -829,7 +844,7 @@ fn update_gun_position(
                                         position.0.position.translation.y
                                             - player_position.position.translation.y,
                                     ),
-                                    elapsed: Instant::now(),
+                                    elapsed: instant::Instant::now(),
                                 })
                                 .insert(RigidBodyPositionSync::Discrete);
                         }
@@ -887,7 +902,7 @@ fn update_shotgun_position(
                             if gun.shot_duration.as_secs() <= gun.elapsed.elapsed().as_secs() {
                                 gun.do_shot = true;
                                 gun.shot_duration = Duration::new(5, 0);
-                                gun.elapsed = Instant::now();
+                                gun.elapsed = instant::Instant::now();
                             }
                             sprite.color = Color::rgba(1.0, 1.0, 1.0, 1.0);
                         } else {
@@ -1023,7 +1038,7 @@ fn update_shotgun_position(
                                         position.0.position.translation.y
                                             - player_position.position.translation.y,
                                     ),
-                                    elapsed: Instant::now(),
+                                    elapsed: instant::Instant::now(),
                                 })
                                 .insert(RigidBodyPositionSync::Discrete);
 
@@ -1038,7 +1053,7 @@ fn update_shotgun_position(
                                         position.0.position.translation.y
                                             - player_position.position.translation.y * 0.5,
                                     ),
-                                    elapsed: Instant::now(),
+                                    elapsed: instant::Instant::now(),
                                 })
                                 .insert(RigidBodyPositionSync::Discrete);
                             cmd.spawn_bundle(bullet3)
@@ -1052,7 +1067,7 @@ fn update_shotgun_position(
                                         position.0.position.translation.y
                                             - player_position.position.translation.y * 2.0,
                                     ),
-                                    elapsed: Instant::now(),
+                                    elapsed: instant::Instant::now(),
                                 })
                                 .insert(RigidBodyPositionSync::Discrete);
                             gun.do_shot = false;
@@ -1074,8 +1089,8 @@ fn update_bullets(
 ) {
     for (Entity, mut class, mut bullet) in bullet_query.iter_mut() {
         for player_position in player_query.iter() {
-            bullet.0.position.translation.x += -class.shoot_dir.normalize().x * 3.0;
-            bullet.0.position.translation.y += -class.shoot_dir.normalize().y * 3.0;
+            bullet.0.position.translation.x += -class.shoot_dir.normalize().x * 6.0;
+            bullet.0.position.translation.y += -class.shoot_dir.normalize().y * 6.0;
             if class.lifetime.as_secs() <= class.elapsed.elapsed().as_secs() {
                 cmd.entity(Entity).despawn();
             }
@@ -1149,7 +1164,7 @@ fn update_ai_movement(
                                             player.hit_duration = Duration::new(3, 0);
                                             player.hit = true;
                                             sprite.color = Color::rgb(1.0, 0.0, 0.0);
-                                            player.elapsed_hit = Instant::now();
+                                            player.elapsed_hit = instant::Instant::now();
                                         }
                                     }
                                 }
@@ -1182,7 +1197,7 @@ fn update_ai_movement(
                     }
 
                     if player.jump_end {
-                        player.elapsed_jump = Instant::now();
+                        player.elapsed_jump = instant::Instant::now();
                     }
 
                     if player.hit && player.lives > 0 {
